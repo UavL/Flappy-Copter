@@ -17,7 +17,6 @@ from pygame.locals import *
 from math import sin, cos, pi, sqrt
 from random import randrange
 import random
-import sys
 
 # Game constants
 FPS = 60
@@ -138,7 +137,6 @@ while True:
 
 		# Display background
 		screen.blit(bg, (0,0))
-
 
 		#playerhitbox_group.draw(screen)
 		pipe_group.draw(screen)
@@ -264,7 +262,6 @@ while True:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				run = False
-				pygame.quit()
 			if event.type == pygame.MOUSEBUTTONDOWN and flying == False and dead == False:
 				flying = True
 
