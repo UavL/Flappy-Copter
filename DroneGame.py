@@ -209,8 +209,13 @@ class FlappyCopter():
 
 	def play_step(self,action):
 		self.frame_iteration += 1
-		self.reward += 0.05
-
+		if self.frame_iteration > 150:
+			self.reward += 0.05
+			print(self.reward)
+		
+		if self.player.y_speed > 1:
+			self.reward -= self.player.y_speed/100
+			 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
@@ -233,13 +238,15 @@ class FlappyCopter():
 
 		# collision
 		if pygame.sprite.groupcollide(self.drone_group, self.pipe_group, False, False):
-				self.reward = -30
+				self.reward -=100
+				self.reward += self.distance_covered/15
 				game_over = True
 				return self.reward, game_over, self.score
 
 		# check if drone has hit the bottom or top
 		if self.player.rect.bottom >= 768 or self.player.rect.top <= 0 or self.player.rect.left <=0:
-				self.reward = -30
+				self.reward -= 100
+				self.reward += self.distance_covered/15
 				game_over = True
 				return self.reward, game_over, self.score
 
