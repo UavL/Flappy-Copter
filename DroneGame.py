@@ -21,6 +21,7 @@ pygame.init()
 
 screen_width = 864
 screen_height = 936
+scroll_speed = 0
 
 
 #define font
@@ -131,6 +132,7 @@ class Drone(pygame.sprite.Sprite):
 class Pipe(pygame.sprite.Sprite):
 	def __init__(self, x, y, position):
 		pygame.sprite.Sprite.__init__(self)
+		self.pipe_gap = 200
 		self.image = pygame.image.load(os.path.join(base_path,"Assets/pipe.png"))
 		self.rect = self.image.get_rect()
 		#position 1 is from the top, -1 is from the bottom
@@ -141,7 +143,7 @@ class Pipe(pygame.sprite.Sprite):
 			self.rect.topleft = [x, y + int(self.pipe_gap / 2)]
 
 	def update(self,action,state):
-		self.rect.x -= self.scroll_speed
+		self.rect.x -= scroll_speed
 		if self.rect.right < 0:
 			self.kill()
 
@@ -157,8 +159,6 @@ class FlappyCopter():
 		self.score = 0
 		self.game_over = False
 		self.ground_scroll = 0
-		self.scroll_speed = 0
-		self.pipe_gap = 200
 		self.distance_interval = 500
 		self.distance_covered = 0
 		self.pipe_spawn_count = 0
@@ -188,17 +188,19 @@ class FlappyCopter():
 		self.respawn_timer -= 1 / 60
 
 	def reset(self):
-		if self.respawn_timer <= 0:
-			self.pipe_group.empty()
-			self.drone_group.empty()
-			self.player = Drone(400, int(screen_height / 2))
-			self.drone_group.add(self.player)
-			self.score = 0
-			self.game_over = False
-			self.respawn_timer = 3
-			self.frame_iteration = 0
-			self.reward = 0
-			self.distance_traveled_since_last_spawn = 0
+		self.pipe_group.empty()
+		self.drone_group.empty()
+		self.player = Drone(400, int(screen_height / 2))
+		self.drone_group.add(self.player)
+		self.score = 0
+		self.game_over = False
+		self.respawn_timer = 3
+		self.frame_iteration = 0
+		self.reward = 0
+		self.distance_traveled_since_last_spawn = 0
+		self.distance_covered = 0
+		self.pipe_spawn_count = 0
+		self.ground_scroll = 0
 			
 
 	def draw_text(self, text, font, text_col, x, y):
@@ -207,7 +209,7 @@ class FlappyCopter():
 
 	def play_step(self,action):
 		self.frame_iteration += 1
-		self.reward += 0.01
+		self.reward += 0.05
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -231,13 +233,13 @@ class FlappyCopter():
 
 		# collision
 		if pygame.sprite.groupcollide(self.drone_group, self.pipe_group, False, False):
-				self.reward = -10
+				self.reward = -30
 				game_over = True
 				return self.reward, game_over, self.score
 
 		# check if drone has hit the bottom or top
 		if self.player.rect.bottom >= 768 or self.player.rect.top <= 0 or self.player.rect.left <=0:
-				self.reward = -10
+				self.reward = -30
 				game_over = True
 				return self.reward, game_over, self.score
 
@@ -245,10 +247,10 @@ class FlappyCopter():
 		if game_over == False:
 
 				if self.player.x_speed > 0:
-					self.scroll_speed = self.player.x_speed
+					scroll_speed = self.player.x_speed
 					self.distance_covered += self.player.x_speed
 				else:
-					self.scroll_speed = 0
+					scroll_speed = 0
 
 				# checking the score
 				self.distance_traveled_since_last_spawn = self.distance_covered - (self.pipe_spawn_count * self.distance_interval)
@@ -269,7 +271,7 @@ class FlappyCopter():
 				self.draw_text(str(self.score), font, (255, 255, 255), int(screen_width / 2), 20)
 
 				# draw and scroll the ground
-				self.ground_scroll -= self.scroll_speed
+				self.ground_scroll -= scroll_speed
 				if abs(self.ground_scroll) > 35:
 					self.ground_scroll = 0
 
