@@ -37,6 +37,7 @@ arm = 25
 
 # Initialize Pygame, load sprites
 FramePerSec = pygame.time.Clock()
+base_path = os.path.dirname(__file__)
 
 pygame.init()
 screen = pygame.display.set_mode((screen_width, screen_height))
@@ -54,7 +55,7 @@ player = pygame.Rect((400, screen_height / 2, 80, int(player_width * 0.30)))
 player = []
 for i in range(1, 3):
     image = pygame.image.load(
-        os.path.join(
+        os.path.join(base_path,
             "Assets/drone"
             + str(i)
             + ".png"
@@ -92,9 +93,9 @@ pipe_spawn_count = 0
 respawn_timer = 3
 
 #load images
-bg = pygame.image.load('Assets/bg.png')
-ground_img = pygame.image.load('Assets/ground.png')
-button_img = pygame.image.load('Assets/restart.png')
+bg = pygame.image.load(os.path.join(base_path,'Assets/bg.png'))
+ground_img = pygame.image.load(os.path.join(base_path,'Assets/ground.png'))
+button_img = pygame.image.load(os.path.join(base_path,'Assets/restart.png'))
 
 
 def draw_text(text, font, text_col, x, y):
@@ -108,11 +109,12 @@ def reset_game():
 	y_position = int(screen_height / 2)
 	score = 0
 	return score
+	
 
 class Pipe(pygame.sprite.Sprite):
 	def __init__(self, x, y, position):
 		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.image.load('Assets/pipe.png')
+		self.image = pygame.image.load(os.path.join(base_path,'Assets/pipe.png'))
 		self.rect = self.image.get_rect()
 		#position 1 is from the top, -1 is from the bottom
 		if position == 1:
@@ -135,7 +137,6 @@ while True:
 
 		# Display background
 		screen.blit(bg, (0,0))
-
 
 		#playerhitbox_group.draw(screen)
 		pipe_group.draw(screen)
