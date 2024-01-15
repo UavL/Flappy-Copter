@@ -19,6 +19,7 @@ import random
 import neat
 import pickle
 from neat.parallel import ParallelEvaluator
+import threading
 
 pygame.init()
 
@@ -26,7 +27,7 @@ screen_width = 864
 screen_height = 936
 scroll_speed = 0
 
-
+lock = threading.Lock()
 
 #define font
 font = pygame.font.SysFont('Arial', 60)
@@ -146,8 +147,8 @@ class Pipe(pygame.sprite.Sprite):
 		if position == -1:
 			self.rect.topleft = [x, y + int(self.pipe_gap / 2)]
 
-	def update(self):
-		self.rect.x -= scroll_speed
+	def update(self,scroll_sp):
+		self.rect.x -= scroll_sp
 		if self.rect.right < 0:
 			self.kill()
 
@@ -155,18 +156,13 @@ class FlappyCopter():
 
 	def __init__(self):
 		# Game constants
-		self.clock = pygame.time.Clock()
-
 		self.screen = pygame.display.set_mode((screen_width, screen_height))
 
 		# Initialize physics variables
 		self.score = 0
-		self.game_over = False
 		self.ground_scroll = 0
 		self.distance_interval = 500
 		self.pipe_spawn_count = 0
-		self.respawn_timer = 3
-		self.reward = 0
 
 		# pipe group
 		self.pipe_group = pygame.sprite.Group()
@@ -174,24 +170,22 @@ class FlappyCopter():
 		# drone group
 		self.drone_group = pygame.sprite.Group()
 
-	def respawn_timer(self):
-		# Display respawn timer
-		respawn_text = font.render(
-			str(int(self.respawn_timer) + 1), True, (0, 0, 0))
-		respawn_text.set_alpha(124)
-		self.screen.blit(
-			respawn_text,
-			(screen_width / 2 - respawn_text.get_width() / 2,
-				screen_height / 2 - respawn_text.get_height() / 2,),)
+	# def respawn_timer(self):
+	# 	# Display respawn timer
+	# 	respawn_text = font.render(
+	# 		str(int(self.respawn_timer) + 1), True, (0, 0, 0))
+	# 	respawn_text.set_alpha(124)
+	# 	self.screen.blit(
+	# 		respawn_text,
+	# 		(screen_width / 2 - respawn_text.get_width() / 2,
+	# 			screen_height / 2 - respawn_text.get_height() / 2,),)
 
-		self.respawn_timer -= 1 / 60
+	# 	self.respawn_timer -= 1 / 60
 
 	def reset(self):
 		self.pipe_group.empty()
 		self.drone_group.empty()
 		self.score = 0
-		self.game_over = False
-		self.reward = 0
 		self.pipe_spawn_count = 0
 		self.ground_scroll = 0
 			
@@ -238,9 +232,8 @@ class FlappyCopter():
 		return state
 	
 	def main(self, genomes, config):
-		self.pipe_group = pygame.sprite.Group()
-		self.pipe_group.empty()
-		self.drone_group.empty()
+		global lock
+		self.clock = pygame.time.Clock()
 		nets = []
 		ge = []
 		players = []
@@ -276,29 +269,34 @@ class FlappyCopter():
 				output = nets[players.index(player)].activate(self.get_state(player))
 				output = [1 if out>0.5 else 0 for out in output]
 				player.update(output)
+				
 				self.drone_group.draw(self.screen)
+				
 			
 			
 
 			# draw the ground
+			
 			self.screen.blit(ground_img, (self.ground_scroll, 768))
+			
 
 			# collision check and
 			# check if drone has hit the bottom or top
-			for x, player in enumerate(players):
-				if pygame.sprite.spritecollideany(self.drone_group.sprites()[x], self.pipe_group.sprites()):
-					ge[x].fitness -= 2
-					ge[x].fitness += player.distance_covered/160
-					players.pop(x)
-					nets.pop(x)
-					ge.pop(x)
+			
+			# if pygame.sprite.spritecollideany(player, self.pipe_group.sprites()):
+			# 	
+			# 	ge[x].fitness -= 2
+			# 	ge[x].fitness += player.distance_covered/160
+			# 	players.pop(x)
+			# 	nets.pop(x)
+			# 	ge.pop(x)
 
-				if player.rect.bottom >= 768 or player.rect.top <= 0:
-					ge[x].fitness -= 2
-					ge[x].fitness += player.distance_covered/160
-					players.pop(x)
-					nets.pop(x)
-					ge.pop(x)
+			if player.rect.bottom >= 768 or player.rect.top <= 0:
+				ge[x].fitness -= 2
+				ge[x].fitness += player.distance_covered/160
+				players.pop(x)
+				nets.pop(x)
+				ge.pop(x)
 
 
 			furthest_distance = 0
@@ -337,9 +335,12 @@ class FlappyCopter():
 				player.distance_traveled_since_last_spawn = player.distance_covered - (self.pipe_spawn_count * self.distance_interval)
 				if player.distance_traveled_since_last_spawn >= self.distance_interval and self.pipe_spawn_count >= 1:
 					self.score += 1
-					ge[x].fitness += 5
+					ge[x].fitness += 30 * self.score
+			
 			
 			self.draw_text(str(players[furthest].distance_covered), font, (255, 255, 255), int(screen_width / 2), 890)
+			self.draw_text(str(self.score), font, (255, 255, 255), int(screen_width / 2), 20)
+				
 
 			# generate new pipes
 			if players[furthest].distance_traveled_since_last_spawn >= self.distance_interval:
@@ -348,10 +349,7 @@ class FlappyCopter():
 				top_pipe = Pipe(screen_width, int(screen_height / 2) + pipe_height, 1)
 				self.pipe_group.add(btm_pipe)
 				self.pipe_group.add(top_pipe)
-				pipes_spawned = True
 				self.pipe_spawn_count += 1
-
-			self.draw_text(str(self.score), font, (255, 255, 255), int(screen_width / 2), 20)
 
 			# draw and scroll the ground
 			self.ground_scroll -= scroll_speed
@@ -359,40 +357,52 @@ class FlappyCopter():
 			if abs(self.ground_scroll) > 35:
 				self.ground_scroll = 0
 
-			for n, pipe in enumerate(self.pipe_group):
-				pipe.update()
-				print(self.pipe_group.sprites()[n].rect.x)
+			#for n, pipe in enumerate(self.pipe_group):
+			#	pipe.update(scroll_speed)
+			#	print(self.pipe_group.sprites()[n].rect.x)
 
-			self.pipe_group.update()
+			self.pipe_group.update(scroll_speed)
+			
 			self.pipe_group.draw(self.screen)
+			
 
 
 			pygame.display.update()
+			
+		self.reset()
 
 	def run(self,config_file):
 			config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
 								neat.DefaultSpeciesSet, neat.DefaultStagnation, config_file)
+			
 
-			# Create the population, which is the top-level object for a NEAT run.
-			p = neat.Population(config)
+			if os.path.isfile(os.path.join(local_dir,'winneer.pkl')):
+				with open(os.path.join(local_dir,'winner.pkl'), "rb") as f:
+					genome = pickle.load(f)
+				genomes = [(1, genome)]
+				self.main(genomes,config)
 
-			# Add a stdout reporter to show progress in the terminal.
-			p.add_reporter(neat.StdOutReporter(True))
-			stats = neat.StatisticsReporter()
-			p.add_reporter(stats)
-			#p.add_reporter(neat.Checkpointer(5))
+			else:
+				# Create the population, which is the top-level object for a NEAT run.
+				p = neat.Population(config)
 
-			#per = ParallelEvaluator(num_workers=4, eval_function=self.main)
+				# Add a stdout reporter to show progress in the terminal.
+				p.add_reporter(neat.StdOutReporter(True))
+				stats = neat.StatisticsReporter()
+				p.add_reporter(stats)
+				#p.add_reporter(neat.Checkpointer(5))
 
-			# Run for up to 50 generations.
-			winner = p.run(self.main, 2)
+				per = ParallelEvaluator(num_workers=4, eval_function=self.main)
+				winner = p.run(per.evaluate, 10)
 
-			with open("winner.pkl", "wb") as f:
-				pickle.dump(winner, f)
-				f.close()
+				# Run for up to 50 generations.
+				#winner = p.run(self.main, 290)
 
-			# show final stats
-			print('\nBest genome:\n{!s}'.format(winner))
+				with open("winner.pkl", "wb") as file:
+					pickle.dump(winner, file)
+
+				# show final stats
+				print('\nBest genome:\n{!s}'.format(winner))
 
 if __name__ == '__main__':
     # Determine path to configuration file. This path manipulation is
