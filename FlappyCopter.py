@@ -182,7 +182,7 @@ class FlappyCopter():
 
 	def get_state(self,player):
 		pos_x = player.x_position
-		pos_y = player.x_position
+		pos_y = player.y_position
 
 		vel_x = player.x_speed
 		vel_y = player.y_speed
@@ -192,7 +192,7 @@ class FlappyCopter():
 
 		if self.pipe_group:
 			pipes = self.pipe_group.sprites()
-			if player.distance_traveled_since_last_spawn >= self.distance_interval and self.pipe_spawn_count > 1:
+			if len(pipes) > 2:
 				pipe_bot = pipes[3]
 				pipe_top = pipes[2]
 			else:
@@ -205,7 +205,7 @@ class FlappyCopter():
 			pipe_bot_xy = (930,300)    
 
 		state = [
-			#pos_x,
+			pos_x,
             pos_y, 
             vel_x, 
             vel_y, 
