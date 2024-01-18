@@ -38,7 +38,7 @@ def run(config_file):
 	#per = ParallelEvaluator(num_workers=4, eval_function=self.main)
 
 	# Run for up to 50 generations.
-	winner = p.run(game.main, 200)
+	winner = p.run(game.main, 2000)
 
 	with open("winner.pkl", "wb") as file:
 		pickle.dump(winner, file)

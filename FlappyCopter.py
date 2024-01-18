@@ -254,7 +254,7 @@ class FlappyCopter():
 
 			for x, player in enumerate(players):
 				output = nets[players.index(player)].activate(self.get_state(player))
-				output = [1 if out>0.5 else 0 for out in output]
+				output = [1 if out>0 else 0 for out in output]
 				player.update(output)
 				self.drone_group.draw(self.screen)
 			
@@ -265,15 +265,20 @@ class FlappyCopter():
 
 			# collision check and
 			# check if drone has hit the bottom or top
+			self.next_up = 0
+			self.diff = 0
 			for x, player in enumerate(players):
 				if pygame.sprite.spritecollideany(player, self.pipe_group.sprites()) or (player.rect.bottom >= 768 or player.rect.top <= 0):
+					if x == furthest:
+						self.next_up = x
+						self.diff = player.rect.x
 					ge[x].fitness -= 6
 					ge[x].fitness += player.distance_covered/160
 					players.pop(x)
 					nets.pop(x)
-					ge.pop(x)				
-
-
+					ge.pop(x)
+					self.drone_group.remove(player)
+			
 			furthest_distance = 0
 			changed = False
 			for x, player in enumerate(players):
@@ -290,10 +295,16 @@ class FlappyCopter():
 				running = False
 				break
 
+			if self.next_up > 0:
+				dif = (self.diff-players[furthest].rect.x)
+				for player in players:
+					player.rect.x += dif
+				self.pipe_group.update(-dif)
+
 			if ticks > 1800:
 				for x, player in enumerate(players):
 					if player.distance_covered < 5:
-						ge[x].fitness -= 60
+						ge[x].fitness -= 10
 				running = False
 				break
 
@@ -312,7 +323,7 @@ class FlappyCopter():
 				player.distance_traveled_since_last_spawn = player.distance_covered - (self.pipe_spawn_count * self.distance_interval)
 				if player.distance_traveled_since_last_spawn >= self.distance_interval and self.pipe_spawn_count >= 1:
 					self.score += 1
-					ge[x].fitness += 30 * self.score
+					ge[x].fitness += 6 * self.score
 			
 			self.draw_text(str(players[furthest].distance_covered), font, (255, 255, 255), int(screen_width / 2), 890)
 
