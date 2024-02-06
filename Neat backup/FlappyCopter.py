@@ -33,10 +33,12 @@ player_width = 80
 window = pygame.display.set_mode((win_width, win_height))
 pygame.display.set_caption("Flappy Drone")
 
-stone_img = pygame.transform.scale(pygame.image.load(os.path.join("Assets","Felsen.png")).convert_alpha(), (250, 500))
-bg_img = pygame.transform.scale(pygame.image.load(os.path.join("Assets","Cave.jpg")).convert_alpha(), (win_width, win_height))
-drone_images = [pygame.transform.scale(pygame.image.load(os.path.join("Assets","drone" + str(x) + ".png")), (player_width, int(0.3 * player_width))) for x in range(1,3)]
-base_img = pygame.transform.scale(pygame.image.load(os.path.join("Assets","ground.png")).convert_alpha(), (900, 220))
+base_path = os.path.dirname(__file__)
+
+stone_img = pygame.transform.scale(pygame.image.load(os.path.join(base_path,"Assets","Felsen.png")).convert_alpha(), (250, 500))
+bg_img = pygame.transform.scale(pygame.image.load(os.path.join(base_path,"Assets","Cave.jpg")).convert_alpha(), (win_width, win_height))
+drone_images = [pygame.transform.scale(pygame.image.load(os.path.join(base_path,"Assets","drone" + str(x) + ".png")), (player_width, int(0.3 * player_width))) for x in range(1,3)]
+base_img = pygame.transform.scale(pygame.image.load(os.path.join(base_path,"Assets","ground.png")).convert_alpha(), (900, 220))
 gen = 0
 
 class Drone:
@@ -317,7 +319,7 @@ class FlappyCopter():
                     stone_ind = 1
 
             for x, player in enumerate(players):
-                ge[x].fitness += 0.1
+                ge[x].fitness += 0.01
 
                 # send location
                 output = nets[players.index(player)].activate((player.y_position, player.y_speed, abs(player.y_position - stones[stone_ind].height), abs(player.y_position - stones[stone_ind].bottom)))
@@ -362,3 +364,4 @@ class FlappyCopter():
                     players.pop(players.index(player))
 
             draw_window(window, players, stones, base, score, gen, stone_ind)
+        print(score)
