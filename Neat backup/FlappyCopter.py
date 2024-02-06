@@ -243,41 +243,17 @@ class FlappyCopter():
         img = font.render(text, True, text_col)
         self.screen.blit(img, (x, y))
 
-    def get_state(self, player):
-        pos_x = player.x_position
+    def get_state(self, player, stones, stone_ind):
         pos_y = player.y_position
-
-        vel_x = player.x_speed
         vel_y = player.y_speed
-
-        phi = player.angle
-        omega = player.angular_speed
-
-        if self.stone_group:
-            stones = self.stone_group.sprites()
-            if len(stones) > 2:
-                stone_bot = stones[3]
-                stone_top = stones[2]
-            else:
-                stone_bot = stones[1]
-                stone_top = stones[0]
-            stone_top_xy = stone_top.rect.topleft
-            stone_bot_xy = stone_bot.rect.bottomright
-        else:
-            stone_top_xy = (850, 500)
-            stone_bot_xy = (930, 300)
+        dif_top = abs(player.y_position - stones[stone_ind].height)
+        dif_bot = abs(player.y_position - stones[stone_ind].bottom)
 
         state = [
-            pos_x,
             pos_y,
-            vel_x,
             vel_y,
-            phi,
-            omega,
-            (stone_top_xy[0] - pos_x),
-            (stone_top_xy[1] - pos_y),
-            (stone_bot_xy[0] - pos_x),
-            (stone_bot_xy[1] - pos_y)
+            dif_top,
+            dif_bot
         ]
 
         return state
@@ -322,7 +298,7 @@ class FlappyCopter():
                 ge[x].fitness += 0.01
 
                 # send location
-                output = nets[players.index(player)].activate((player.y_position, player.y_speed, abs(player.y_position - stones[stone_ind].height), abs(player.y_position - stones[stone_ind].bottom)))
+                output = nets[players.index(player)].activate(self.get_state(player,stones,stone_ind))
                 output = [1 if out > 0.5 else 0 for out in output]
                 player.update(output)
 
